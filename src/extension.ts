@@ -5,12 +5,13 @@ rp.debug = true;
 
 export function activate(context: vscode.ExtensionContext) {
   vscode.window.registerTreeDataProvider('exampleView', new TreeDataProvider());
-  vscode.commands.registerCommand("exampleView.selectNode", (item:vscode.TreeItem) => {
+  vscode.commands.registerCommand("exampleView.selectNode", (item:TreeItem) => {
     vscode.workspace.openTextDocument({
-      content: item.label?.toString(), 
-      language: "text"
+      content: item.args, 
+      language: "text"    
     });
     
+    console.log(item);
 });
 }
 
@@ -28,12 +29,7 @@ class TreeDataProvider implements vscode.TreeDataProvider<TreeItem> {
   laureates: TreeItem[] = [];
 
   constructor() {
-    this.getLaureates(); 
-
-    this.laureates =  [
-      new TreeItem(
-          'Ford')];
-         
+    this.getLaureates();          
   }
 
   refresh(): void {
@@ -64,8 +60,9 @@ class TreeDataProvider implements vscode.TreeDataProvider<TreeItem> {
   rp(options)
       .then( (parsedBody:any) => {
           // POST succeeded...
-          parsedBody[0].laureates.forEach((element: { fullName: { en: string; }; }) => {
-            let item = new TreeItem(element.fullName.en);
+          parsedBody[0].laureates.forEach((element: { fullName: { en: string; } ,portion:string, motivation:{en:string},
+            links:{href:string},id:string}) => {
+            let item = new TreeItem(element.fullName.en,undefined,this.createDetailPageText(element));
             item.command = {
               command: "exampleView.selectNode",
               title: "Select Node",
@@ -80,18 +77,29 @@ class TreeDataProvider implements vscode.TreeDataProvider<TreeItem> {
           // POST failed...
           console.log(err);
       });
-
   }
+
+ createDetailPageText(args: { fullName: { en: string; } ,portion:string, motivation:{en:string},
+                              links:{href:string},id:string}):any{
+   let content:string = `Full Name: ${args.fullName.en}\n`;
+   content += `Portion: ${args.portion}\n`;
+   content += `Motivation: ${args.motivation.en}\n`;
+   content += `Link: ${args.links.href}`;
+   return content;
+ }
 }
 
 class TreeItem extends vscode.TreeItem {
   children: TreeItem[]|undefined;
+  args:any;
 
-  constructor(label: string, children?: TreeItem[]) {
+  constructor(label: string, children?: TreeItem[],args?:any) {
     super(
         label,
         children === undefined ? vscode.TreeItemCollapsibleState.None :
                                  vscode.TreeItemCollapsibleState.Expanded);
     this.children = children;
+    this.args = args;
   }
 }
+
