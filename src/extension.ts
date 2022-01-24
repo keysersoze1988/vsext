@@ -3,16 +3,28 @@ import * as vscode from 'vscode';
 var rp = require('request-promise');
 rp.debug = true;
 
-export function activate(context: vscode.ExtensionContext) {
-  vscode.window.registerTreeDataProvider('exampleView', new TreeDataProvider());
+
+export async function activate(context: vscode.ExtensionContext) {
+
+  let searchText;
+
+ let res = await vscode.window.showInputBox({
+    placeHolder: "Search query",
+    prompt: "Search my snippets on Codever",
+    value: searchText
+  });
+
+
+  vscode.window.registerTreeDataProvider('exampleView', new TreeDataProvider(res));
   vscode.commands.registerCommand("exampleView.selectNode", (item:TreeItem) => {
     vscode.workspace.openTextDocument({
       content: item.args, 
       language: "text"    
     });
     
-    console.log(item);
 });
+
+console.log(searchText);
 }
 
 class TreeDataProvider implements vscode.TreeDataProvider<TreeItem> {
@@ -28,8 +40,8 @@ class TreeDataProvider implements vscode.TreeDataProvider<TreeItem> {
   data: TreeItem[] = [];
   laureates: TreeItem[] = [];
 
-  constructor() {
-    this.getLaureates();          
+  constructor(searchText:string|undefined) {
+    this.getLaureates(searchText);          
   }
 
   refresh(): void {
@@ -49,11 +61,15 @@ class TreeDataProvider implements vscode.TreeDataProvider<TreeItem> {
     }
   }
 
- async getLaureates(){
+ async getLaureates(searchText:string|undefined){
  
+if (searchText !==undefined){
+
+ let requestParams = searchText?.split('&');
+
     var options = {
       method: 'GET',
-      uri: 'http://api.nobelprize.org/2.0/nobelPrize/med/1990',
+      uri: `http://api.nobelprize.org/2.0/nobelPrize/${requestParams[0]}/${requestParams[1]}`,
       json: true // Automatically stringifies the body to JSON
   };
   
@@ -77,6 +93,8 @@ class TreeDataProvider implements vscode.TreeDataProvider<TreeItem> {
           // POST failed...
           console.log(err);
       });
+
+    }
   }
 
  createDetailPageText(args: { fullName: { en: string; } ,portion:string, motivation:{en:string},
